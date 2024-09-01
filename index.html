@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catch the Food</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        #gameCanvas {
+            background-color: #87CEEB;
+            display: block;
+            margin: 50px auto;
+            position: relative;
+            width: 400px;
+            height: 600px;
+            overflow: hidden;
+        }
+
+        #player {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 50px;
+        }
+
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #gameOver {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 36px;
+            color: white;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .falling-item {
+            position: absolute;
+            top: 0;
+            font-size: 40px;
+        }
+
+        .overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameCanvas">
+        <div id="player">😊</div>
+        <div id="score">Score: 0</div>
+        <div id="gameOver">You Lose</div>
+        <div class="overlay"></div>
+    </div>
+
+    <script>
+        const player = document.getElementById('player');
+        const gameCanvas = document.getElementById('gameCanvas');
+        const scoreDisplay = document.getElementById('score');
+        const gameOverDisplay = document.getElementById('gameOver');
+        const overlay = document.querySelector('.overlay');
+        const foodEmojis = ['🍓', '🍔', '🍎'];
+        const bombEmoji = '💣';
+        const successEmojis = ['🤩', '😆', '😋'];
+        const gameWidth = gameCanvas.clientWidth;
+        const gameHeight = gameCanvas.clientHeight;
+        let score = 0;
+        let gameSpeed = 2; // Tốc độ rơi ban đầu, 2px mỗi khung hình
+        let spawnInterval = 1000; // Khoảng thời gian giữa các lần tạo vật phẩm
+        let gameRunning = true;
+
+        // Initialize player's position
+        let playerLeft = (gameWidth / 2) - (player.offsetWidth / 2);
+        player.style.left = `${playerLeft}px`;
+
+        function movePlayer(event) {
+            const stepSize = 30; // Tốc độ di chuyển của nhân vật
+
+            if (event.key === 'ArrowLeft' && playerLeft > 0) {
+                playerLeft = Math.max(playerLeft - stepSize, 0);
+            } else if (event.key === 'ArrowRight' && playerLeft < gameWidth - player.offsetWidth) {
+                playerLeft = Math.min(playerLeft + stepSize, gameWidth - player.offsetWidth);
+            }
+
+            player.style.left = `${playerLeft}px`;
+        }
+
+        function spawnItem() {
+            if (!gameRunning) return;
+
+            const item = document.createElement('div');
+            const isBomb = Math.random() < 0.3; // Tăng xác suất bom từ 20% lên 30%
+            item.textContent = isBomb ? bombEmoji : foodEmojis[Math.floor(Math.random() * foodEmojis.length)];
+            item.className = 'falling-item';
+            item.style.left = `${Math.random() * (gameWidth - 50)}px`;
+            item.style.top = '0px';
+            gameCanvas.appendChild(item);
+
+            function fall() {
+                if (!gameRunning) return;
+
+                const itemPos = item.getBoundingClientRect();
+                const playerPos = player.getBoundingClientRect();
+
+                if (itemPos.bottom >= playerPos.top &&
+                    itemPos.left < playerPos.right &&
+                    itemPos.right > playerPos.left) {
+                    item.remove();
+
+                    if (isBomb) {
+                        player.textContent = '💥';
+                        score -= 1;
+                        scoreDisplay.textContent = `Score: ${score}`;
+                        setTimeout(() => {
+                            player.textContent = '😵‍💫';
+                            if (score < 0) {
+                                endGame();
+                            }
+                        }, 500);
+                    } else {
+                        score += 1;
+                        scoreDisplay.textContent = `Score: ${score}`;
+                        player.textContent = successEmojis[Math.floor(Math.random() * successEmojis.length)];
+                    }
+                } else if (itemPos.top >= gameHeight) {
+                    item.remove();
+                } else {
+                    item.style.top = `${parseFloat(item.style.top) + gameSpeed}px`;
+                    requestAnimationFrame(fall); // Sử dụng requestAnimationFrame để rơi mượt mà hơn
+                }
+            }
+
+            requestAnimationFrame(fall); // Khởi động chuyển động rơi
+
+            // Tăng tốc độ rơi sau mỗi lần tạo vật phẩm với tốc độ từ từ
+            gameSpeed += 0.01;
+        }
+
+        function endGame() {
+            gameRunning = false;
+            overlay.style.display = 'block';
+            gameOverDisplay.style.display = 'block';
+        }
+
+        document.addEventListener('keydown', movePlayer);
+        setInterval(spawnItem, spawnInterval); // Tiếp tục tạo vật phẩm
+    </script>
+</body>
+</html>
